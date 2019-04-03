@@ -37,6 +37,7 @@ main_soup = BeautifulSoup(main_page, features="html.parser")
 list_of_topics = main_soup.find('ul',{'class':'dropdown-menu SearchBar-keywordSearch'})
 # print(list_of_topics) # cool
 
+
 # for each list item in the unordered list, I want to capture -- and CACHE so I only get it 1 time this week --
 # the data at each URL in the list...
 all_links = list_of_topics.find_all('a')
@@ -52,11 +53,12 @@ all_links = list_of_topics.find_all('a')
 
 # This is stuff ^ I'd eventually clean up, but probably not at first as I work through this problem.
 
-sites_pages = [] # gotta get all the data in BeautifulSoup objects to work with...
+all_pages = [] # gotta get all the data in BeautifulSoup objects to work with...
 for l in all_links:
     page_data = access_page_data('http://www.nps.gov' + l['href'])
     soup_of_page = BeautifulSoup(page_data, features="html.parser")
-    sites_pages.append(soup_of_page)
+    all_pages.append(soup_of_page)
+# print(all_pages)
 
 # Now I can do some investigation on just one of those BeautifulSoup instances, and thus decide what I want to do with each one...
 # Each time I run the program, I'm not going to the internet at all sometimes unless some page is new or it's -- in this case -- been more than 7 days since storing data.
@@ -64,40 +66,61 @@ for l in all_links:
 
 # Just for example --
 # print(topics_pages[0].prettify())
+all_info=[]
+for each in all_pages:
+    each_info = each.find_all('li', {'class':'clearfix'})
+    for each in each_info:
+        each_list = []
+        if each.find('h3') == None:
+            continue
+        if each.find('h3'):
+            name = each.find('h3')
+            each_list.append(name.text)
+        if len(each.find('h2')) == 0:
+            each_list.append('National Site')
+        else:
+            type = each.find('h2')
+            each_list.append(type.text)
+        if len(each.find('p')) == 0:
+            each_list.append('NONE')
+        else:
+            description = each.find('p')
+            each_list.append(description.text)
+        if len(each.find('h4')) == 0:
+            each_list.append('NONE')
+        else:
+            location = each.find('h4')
+            each_list.append(location.text)
+        all_info.append(each_list)
 
-all_list = []
-for state in sites_pages:
-    each_site = state.find_all('li', {'class':'clearfix'})
-    site_list = []
-    for site in each_site:
-        if site.find('h3'):
-            if len(site.find('h3')) == 0:
-                site_list.append('NONE')
-            else:
-                name = site.find('h3')
-                site_list.append(name.text)
-        if site.find('h2'):
-            if len(site.find('h2')) == 0:
-                site_list.append('NONE')
-            else:
-                type = site.find('h2')
-                site_list.append(type.text)
-        if site.find('p'):
-            if len(site.find('p')) == 0:
-                site_list.append('National Site')
-            else:
-                description = site.find('p')
-                site_list.append(description.text)
-        if site.find('h4'):
-            if len(site.find('h4')) == 0:
-                site_list.append('NONE')
-            else:
-                location = site.find('h4')
-                site_list.append(location.text)
-    all_list.append(site_list)
+# new_list = [all_list[i:i+4] for i in range(0, len(all_list), 4)]
 
-# print(all_list)
 
-with open('national_sites.csv','w') as nationalsites_file:
-    writer = csv.writer(nationalsites_file)
-    writer.writerow(['Name','Type','Description','Location', 'Main State'])
+
+# with open('national_sites.csv','w') as parks_file:
+#     parkwriter = csv.writer(parks_file)
+#     parkwriter.writerow(['Park Name','Park Type','Desc','Park Location'])
+#     for each in all_list:
+#         parkwriter.writerow(each[0], each[1],each[2],each[3],', ')
+
+
+outfile = open('national_sites.csv','w',encoding='utf-8')
+outfile.write('NAME,TYPE,DESCRIPTION,LOCATION')
+outfile.write('\n')
+for each in all_info:
+    line = '{},{},{},{}'.format(each[0],each[1],each[2].replace('\n',' ').replace(',',' '),each[3].replace(',',' '))
+    outfile.write(line)
+    outfile.write('\n')
+outfile.close()
+
+# outfile=open("national_sites.csv","w")
+# header1="NAME,TYPE,DESCRIPTION,LOCATION\n"
+# outfile.write(header1)
+# for each in all_list:
+#     line="{},{},\"{}\",\"{}\"\n".format(each[0], each[1],each[2],each[3])
+#     outfile.write(line)
+# outfile.close()
+
+# with open('national_sites.csv','w') as nationalsites_file:
+#     writer = csv.writer(nationalsites_file)
+#     writer.writerow(['Name','Type','Description','Location', 'Main State'])
